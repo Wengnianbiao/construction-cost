@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="按面积或工程量清单快速估算工程成本。">
+  <title>工程造价速算</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" type="module"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="currentColor"/><path d="M8 24V12l8-5 8 5v12H8Zm8-17v17M8 12l8 5 8-5" fill="none" stroke="white" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <span>工程造价速算</span>
+      </div>
+      <a class="header-link" href="#history">历史项目 <span aria-hidden="true">↓</span></a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow"><span></span> 工程成本工作台</p>
+      <h1 id="page-title">项目成本估算</h1>
+      <p>输入项目参数，快速算出一版工程成本。</p>
+    </section>
+
+    <div class="workspace">
+      <section class="panel input-panel" aria-labelledby="input-title">
+        <div class="panel-heading">
+          <div><p class="step">01 / 参数</p><h2 id="input-title">录入项目</h2></div>
+          <button type="button" id="example" class="button secondary">填入示例</button>
+        </div>
+
+        <form id="estimate-form">
+          <fieldset id="form-fields" class="form-fields">
+            <label class="field">
+              <span>项目名称</span>
+              <input name="name" type="text" required maxlength="80" placeholder="例如：某办公楼改造工程">
+            </label>
+
+            <div class="mode-field">
+              <div class="field-title" id="mode-label">估算方式</div>
+              <div class="mode-switch" role="group" aria-labelledby="mode-label">
+                <button type="button" data-mode="area" aria-pressed="true">面积速算</button>
+                <button type="button" data-mode="items" aria-pressed="false">工程量清单</button>
+              </div>
+            </div>
+
+            <fieldset id="area-fields" class="field-grid">
+              <label class="field">
+                <span>建筑面积 <small>㎡</small></span>
+                <input name="area" type="number" required min="0.001" max="999999999.999" step="0.001" placeholder="例如：1200">
+              </label>
+              <label class="field">
+                <span>参考单价 <small>元 / ㎡</small></span>
+                <input name="unit_price" type="number" required min="0" max="9999999999.99" step="0.01" placeholder="例如：2800">
+              </label>
+            </fieldset>
+
+            <fieldset id="item-fields" class="item-fields" hidden disabled>
+              <div id="line-items"></div>
+              <button type="button" class="button secondary add-line" id="add-line">＋ 添加清单项</button>
+              <datalist id="common-units">
+                <option value="项"></option><option value="㎡"></option><option value="m³"></option>
+                <option value="m"></option><option value="t"></option><option value="工日"></option>
+              </datalist>
+            </fieldset>
+
+            <div class="reserve-block">
+              <label class="field">
+                <span>预备费率 <small>%</small></span>
+                <input name="reserve_rate" type="number" min="0" max="100" step="0.01" value="0" placeholder="0">
+              </label>
+              <p>按工程费用小计计取，可留空。</p>
+            </div>
+          </fieldset>
+
+          <p id="form-error" class="form-error" role="alert" hidden></p>
+          <div class="actions">
+            <button type="submit" id="calculate" class="button primary">开始估算 <span aria-hidden="true">→</span></button>
+            <button type="button" id="reset" class="button secondary">新建估算</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel result-panel" aria-labelledby="result-title">
+        <div class="panel-heading">
+          <div><p class="step">02 / 结果</p><h2 id="result-title">估算结果</h2></div>
+          <span class="currency">人民币 · CNY</span>
+        </div>
+        <div class="total-block">
+          <p>项目估算总价</p>
+          <div class="total" id="total-amount" aria-live="polite">—</div>
+          <div id="result-name" class="result-name">填写参数后开始估算</div>
+        </div>
+        <dl class="summary">
+          <div><dt>工程费用小计</dt><dd id="subtotal">—</dd></div>
+          <div><dt>预备费</dt><dd id="reserve-amount">—</dd></div>
+        </dl>
+        <ul id="breakdown" class="breakdown" aria-label="费用明细" hidden></ul>
+        <button type="button" id="save" class="button save-button" disabled>保存项目</button>
+        <p id="save-status" class="save-status" role="status"></p>
+      </section>
+    </div>
+
+    <section class="panel history-panel" id="history" aria-labelledby="history-title">
+      <div class="panel-heading">
+        <div><p class="step">03 / 记录</p><h2 id="history-title">历史项目</h2></div>
+        <p class="history-hint">保存在当前浏览器</p>
+      </div>
+      <p id="history-status" class="history-status" role="status">保存估算后，项目会显示在这里。</p>
+      <ul id="project-list" class="project-list" hidden></ul>
+    </section>
+  </main>
+
+  <template id="line-template">
+    <div class="line-item">
+      <label class="field line-name"><span>清单名称</span><input name="line_name" type="text" required maxlength="80" placeholder="如：混凝土"></label>
+      <label class="field"><span>单位</span><input name="line_unit" type="text" list="common-units" required maxlength="12" value="项"></label>
+      <label class="field"><span>工程量</span><input name="line_quantity" type="number" required min="0.001" max="999999999.999" step="0.001" placeholder="0"></label>
+      <label class="field"><span>单价 <small>元</small></span><input name="line_price" type="number" required min="0" max="9999999999.99" step="0.01" placeholder="0.00"></label>
+      <button type="button" class="remove-line" aria-label="移除清单项" title="移除清单项">×</button>
+    </div>
+  </template>
+</body>
+</html>
